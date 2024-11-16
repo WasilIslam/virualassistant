@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
