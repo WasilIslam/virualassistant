@@ -3,22 +3,35 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
+import { useSearchParams } from "next/navigation";
 
-export default function Compiler({ onRun, codeType: initialCodeType, code: initialCode }) {
+export default function Compiler({ onRun }) {
   const editorRef = useRef(null);
-  const [codeType, setCodeType] = useState(initialCodeType || "html");
-  const [key, setKey] = useState(0); // Force rerender editor
+  const [codeType, setCodeType] = useState("html");
+  const [code, setCode] = useState(""); // Code from URL or default
+  const [key, setKey] = useState(0); // Force re-render editor
+  const searchParams = useSearchParams(); // For accessing URL parameters
+
+  useEffect(() => {
+    setTimeout(() => {
+      // Decode and set `codeType` and `code` from URL parameters
+      const urlCodeType = searchParams.get("codeType");
+      const urlCode = searchParams.get("code");
+
+      if (urlCodeType) {
+        setCodeType(decodeURIComponent(urlCodeType));
+      }
+
+      if (urlCode) {
+        setCode(decodeURIComponent(urlCode));
+      }
+    }, 0);
+  }, []);
 
   // Force Monaco to reinitialize when the code type changes
   useEffect(() => {
     setKey((prevKey) => prevKey + 1);
   }, [codeType]);
-
-  useEffect(() => {
-    if (initialCode && initialCodeType) {
-      onRun(initialCode, initialCodeType); // Automatically run if props are provided
-    }
-  }, [initialCode, initialCodeType, onRun]);
 
   const handleEditorDidMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -42,23 +55,28 @@ export default function Compiler({ onRun, codeType: initialCodeType, code: initi
               label: "console.log",
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: "console.log(${1:variable});",
-              insertTextRules:
-                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
               documentation: "Log output to the console",
             },
           ],
         }),
       });
     }
+
+    // Set the editor value to the decoded code
+    if (code) {
+      editor.setValue(code);
+    }
   };
 
   const handleRun = () => {
-    const code = editorRef.current?.getValue() || "";
-    onRun(code, codeType);
+    const currentCode = editorRef.current?.getValue() || "";
+    onRun(currentCode, codeType);
   };
 
   const getDefaultValue = () => {
-    if (initialCode) return initialCode;
+    if (code) return code; // Use URL-decoded code if available
+
     if (codeType === "html") {
       return `<html>
 <head>
@@ -84,12 +102,7 @@ console.log("Hello, JavaScript!");
         <label htmlFor="codeType" className="block font-bold mb-2">
           Select Code Type:
         </label>
-        <select
-          id="codeType"
-          value={codeType}
-          onChange={(e) => setCodeType(e.target.value)}
-          className="p-2 border-4 border-black rounded-md bg-white"
-        >
+        <select id="codeType" value={codeType} onChange={(e) => setCodeType(e.target.value)} className="p-2 border-4 border-black rounded-md bg-white">
           <option value="html">HTML</option>
           <option value="javascript">JavaScript</option>
         </select>
@@ -104,10 +117,7 @@ console.log("Hello, JavaScript!");
           defaultValue={getDefaultValue()}
         />
       </div>
-      <button
-        onClick={handleRun}
-        className="mt-4 px-4 py-2 bg-gray-800 text-white border-4 border-black rounded-md hover:bg-gray-600 transition"
-      >
+      <button onClick={handleRun} className="mt-4 px-4 py-2 bg-gray-800 text-white border-4 border-black rounded-md hover:bg-gray-600 transition">
         Run Code
       </button>
     </div>
