@@ -47,7 +47,8 @@ export default function Output({ htmlContent, codeType }) {
       {codeType === "html" ? (
         <iframe
           title="output"
-          className="w-full h-80 border-4 border-black"
+          style={{height:"70vh"}}
+          className="w-full border-4 border-black"
           srcDoc={htmlContent}
           sandbox="allow-scripts allow-same-origin"
         ></iframe>
